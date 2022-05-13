@@ -14,7 +14,7 @@ server.post('/api/users', (req, res) => {
 
     // Checking for name and bio
     if (name === undefined || bio === undefined) {
-        return res.json({ message: 'Please provide name and bio for the user' })
+        return res.status(400).json({ message: 'Please provide name and bio for the user' })
     } else {
         user.insert({ name, bio })
         .then(object => {
@@ -43,7 +43,7 @@ server.get('/api/users/:id', (req, res) => {
         if (object) {
             res.status(200).json(object)
         } else {
-            res.status(400).json({ message: 'The user with the specified ID does not exist'})
+            res.status(404).json({ message: 'The user with the specified ID does not exist'})
         }
     })
     .catch(err => {
@@ -52,25 +52,46 @@ server.get('/api/users/:id', (req, res) => {
     })
 })
 
-server.delete('/api/users/:id', (req, res) => {
+server.delete('/api/users/:id', async (req, res) => {
     // Storing id 
     const { id } = req.params
-    
-    // Checking if user exist
-    user.findById(id)
-    .then(object => {
-        if (object) {
-            user.delete(id)
-            .then(object => {
-                res.status.json(object)
-            })
-            .catch(err => {
-                console.log(err)
-                res.status(500).json({ message: 'The user could not be removed'})
-            })
-        } else {
-            res.status(404).json({ message: 'The user with the specified ID does not exist'})
-        } 
+    const userProfile = await user.findById(id)
+
+    if (userProfile) {
+        user.remove(id)
+        .then(results => {
+            res.status(200).json(results)
+        })
+        .catch(err => {
+            console.log(err)
+            res.status(500).json({ message: 'The user could not be removed'})
+        })
+    } else {
+        return res.status(404).json({ message: 'The user with the specified ID does not exist'})
+    }
+})
+
+server.put('/api/users/:id' , async (req, res) => {
+    // Storing values
+    const { id } = req.params
+    const { name, bio } = req.body
+    const body = req.body
+    const userProfile = await user.findById(id)
+
+    // Checking if name, bio, and user exist
+    if (name === undefined || bio === undefined) {
+        return res.status(400).json({ message: 'Please provide name and bio for the user'})
+    } else if ( userProfile === undefined ) {
+        return res.status(404).json({ message: 'The user with the specified ID does not exist'})
+    }
+
+    user.update(id, body)
+    .then(results => {
+        res.status(200).json(results)
+    })
+    .catch(err => {
+        console.log(err)
+        res.status(500).json({ message: 'The user information could not be modified'})
     })
 })
 
